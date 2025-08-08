@@ -1,77 +1,108 @@
-<p align="center">
-  <a href="http://nestjs.com/" target="blank"><img src="https://nestjs.com/img/logo-small.svg" width="120" alt="Nest Logo" /></a>
-</p>
+### NestJS Boilerplate (Clean Architecture + Multi-DB)
 
-[circleci-image]: https://img.shields.io/circleci/build/github/nestjs/nest/master?token=abc123def456
-[circleci-url]: https://circleci.com/gh/nestjs/nest
+Este boilerplate demonstra uma arquitetura escalável em NestJS, usando Clean Architecture por módulo (vertical slice) e exemplos de múltiplos bancos (Postgres + Mongo), além de integrações externas via providers.
 
-  <p align="center">A progressive <a href="http://nodejs.org" target="_blank">Node.js</a> framework for building efficient and scalable server-side applications.</p>
-    <p align="center">
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/v/@nestjs/core.svg" alt="NPM Version" /></a>
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/l/@nestjs/core.svg" alt="Package License" /></a>
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/dm/@nestjs/common.svg" alt="NPM Downloads" /></a>
-<a href="https://circleci.com/gh/nestjs/nest" target="_blank"><img src="https://img.shields.io/circleci/build/github/nestjs/nest/master" alt="CircleCI" /></a>
-<a href="https://discord.gg/G7Qnnhy" target="_blank"><img src="https://img.shields.io/badge/discord-online-brightgreen.svg" alt="Discord"/></a>
-<a href="https://opencollective.com/nest#backer" target="_blank"><img src="https://opencollective.com/nest/backers/badge.svg" alt="Backers on Open Collective" /></a>
-<a href="https://opencollective.com/nest#sponsor" target="_blank"><img src="https://opencollective.com/nest/sponsors/badge.svg" alt="Sponsors on Open Collective" /></a>
-  <a href="https://paypal.me/kamilmysliwiec" target="_blank"><img src="https://img.shields.io/badge/Donate-PayPal-ff3f59.svg" alt="Donate us"/></a>
-    <a href="https://opencollective.com/nest#sponsor"  target="_blank"><img src="https://img.shields.io/badge/Support%20us-Open%20Collective-41B883.svg" alt="Support us"></a>
-  <a href="https://twitter.com/nestframework" target="_blank"><img src="https://img.shields.io/twitter/follow/nestframework.svg?style=social&label=Follow" alt="Follow us on Twitter"></a>
-</p>
-  <!--[![Backers on Open Collective](https://opencollective.com/nest/backers/badge.svg)](https://opencollective.com/nest#backer)
-  [![Sponsors on Open Collective](https://opencollective.com/nest/sponsors/badge.svg)](https://opencollective.com/nest#sponsor)-->
+### Tecnologias
 
-## Boilerplate
+- NestJS 11
+- TypeORM (Postgres)
+- Mongoose (MongoDB)
+- Axios (HttpModule)
+- @nestjs/config + Joi (validação de env)
+- @nestjs/terminus (health)
+- Helmet, CORS, ValidationPipe (segurança e DX)
+- Dockerfile + docker-compose
 
-Boilerplate NestJS com:
+### Estrutura de diretórios (essencial)
 
-- Postgres via TypeORM
-- MongoDB via Mongoose
-- HttpClient (Axios) em módulo compartilhado
-- Healthcheck (Terminus)
-- Config via variáveis de ambiente com validação (Joi)
-- Segurança (Helmet, CORS) e validação global (ValidationPipe)
-- Dockerfile e docker-compose
+```
+src/
+  app.module.ts
+  config/
+    configuration.ts         # leitura centralizada de env
+    validation.ts            # schema Joi
+  health/
+    health.module.ts
+    health.controller.ts
+  modules/
+    users/
+      domain/                # entidades e portas (interfaces) puras
+        user.ts
+        user.repository.ts
+      application/           # casos de uso, DTOs, serviços de orquestração
+        dto/
+          create-user.dto.ts
+          update-user.dto.ts
+        services/
+          users.service.port.ts
+          users.service.ts
+        use-cases/
+          create-user.usecase.ts
+          list-users.usecase.ts
+          get-user.usecase.ts
+          update-user.usecase.ts
+          remove-user.usecase.ts
+      infra/                 # adapters para DB/HTTP/etc.
+        db/
+          typeorm/
+            user.entity.ts
+            user.mapper.ts
+            user.repository.ts
+      interface/
+        rest/
+          users.controller.ts
+      users.module.ts
 
-## Project setup
+    notes/                   # mesmo padrão (com Mongoose)
+      domain/
+      application/
+        dto/
+        services/
+        use-cases/
+      infra/
+        db/
+          mongoose/
+            note.schema.ts
+            note.mapper.ts
+            note.repository.ts
+      interface/
+        rest/
+          notes.controller.ts
+      notes.module.ts
 
-```bash
-$ npm install
+  shared/                    # providers transversais (ports/adapters)
+    application/ports/
+      hashing.port.ts
+      email.port.ts
+    infra/
+      hashing/bcrypt.hasher.ts
+      email/nodemailer.email.ts
+    shared-providers.module.ts
+
+typeorm.datasource.ts        # CLI TypeORM (migrations)
 ```
 
-## Compile and run the project
+### Clean Architecture (resumo)
 
-```bash
-# development
-$ npm run start
+- **domain**: regras de negócio puras (sem Nest/ORM). Define portas (interfaces) como contratos.
+- **application**: casos de uso e serviços de orquestração. Dependem de portas, não de implementações.
+- **infra**: adapters que implementam portas (TypeORM, Mongoose, HTTP, SDKs, etc.). Mappers fazem a tradução domain ↔ persistência.
+- **interface**: controladores REST. Tratam requests/responses e chamam o serviço de aplicação.
 
-# watch mode
-$ npm run start:dev
+Os bindings de DI (Dependency Injection) ficam nos módulos: cada porta recebe uma implementação via token (Symbol), ex.: `{ provide: HASHING_SERVICE, useClass: BcryptHasher }`.
 
-# production mode
-$ npm run start:prod
-```
-
-## Run tests
-
-```bash
-# unit tests
-$ npm run test
-
-# e2e tests
-$ npm run test:e2e
-
-# test coverage
-$ npm run test:cov
-```
-
-## Variáveis de Ambiente
+### Variáveis de Ambiente
 
 Crie um `.env` na raiz:
 
 ```
 NODE_ENV=development
 PORT=3000
+
+# HTTP Client
+HTTP_BASE_URL=https://api.example.com
+HTTP_TIMEOUT_MS=5000
+HTTP_MAX_REDIRECTS=5
 
 # Postgres
 POSTGRES_HOST=postgres
@@ -81,55 +112,69 @@ POSTGRES_PASSWORD=postgres
 POSTGRES_DB=app
 POSTGRES_LOGGING=false
 POSTGRES_SYNCHRONIZE=false
+POSTGRES_SSL=false
 
 # Mongo
 MONGO_URI=mongodb://mongo:27017/app
 
-# HTTP Client
-HTTP_TIMEOUT_MS=5000
-HTTP_MAX_REDIRECTS=5
+# Email
+EMAIL_HOST=localhost
+EMAIL_PORT=1025
+EMAIL_USER=
+EMAIL_PASS=
+EMAIL_FROM=no-reply@example.com
+EMAIL_SECURE=false
 ```
 
-## Docker
+### Scripts
+
+- `npm run start:dev` – dev com watch
+- `npm run build` – compila TypeScript
+- `npm run migration:generate` – gera migrations TypeORM
+- `npm run migration:run` – executa migrations
+- `npm run migration:revert` – reverte migrations
+
+### Docker
+
+Suba a stack completa (API + Postgres + Mongo):
 
 ```
 docker compose up --build
 ```
 
-When you're ready to deploy your NestJS application to production, there are some key steps you can take to ensure it runs as efficiently as possible. Check out the [deployment documentation](https://docs.nestjs.com/deployment) for more information.
+A API inicia em `http://localhost:3000`.
 
-If you are looking for a cloud-based platform to deploy your NestJS application, check out [Mau](https://mau.nestjs.com), our official platform for deploying NestJS applications on AWS. Mau makes deployment straightforward and fast, requiring just a few simple steps:
+### Endpoints de exemplo
 
-```bash
-$ npm install -g @nestjs/mau
-$ mau deploy
-```
+- `GET /api/v1/health` – healthcheck Postgres + Mongo
+- `POST /api/v1/users` – cria usuário (Postgres)
+- `GET /api/v1/users` – lista usuários
+- `POST /api/v1/notes` – cria nota (Mongo)
+- `GET /api/v1/notes` – lista notas
 
-With Mau, you can deploy your application in just a few clicks, allowing you to focus on building features rather than managing infrastructure.
+### Como adicionar um novo módulo
 
-## Resources
+1. Domain: entidade(s) e portas em `modules/<modulo>/domain`.
+2. Application: DTOs, casos de uso e serviço orquestrador (porta + impl).
+3. Infra: adapters (ORM/HTTP/SDK) que implementam as portas, com mappers.
+4. Interface: controller REST que injeta a porta do serviço de aplicação.
+5. Módulo: bind das portas → implementações, import de ORM/Mongoose.
+6. Se precisar de providers transversais, adicione portas/impls em `shared/` e exporte no `SharedProvidersModule`.
 
-Check out a few resources that may come in handy when working with NestJS:
+### Decisões de arquitetura
 
-- Visit the [NestJS Documentation](https://docs.nestjs.com) to learn more about the framework.
-- For questions and support, please visit our [Discord channel](https://discord.gg/G7Qnnhy).
-- To dive deeper and get more hands-on experience, check out our official video [courses](https://courses.nestjs.com/).
-- Deploy your application to AWS with the help of [NestJS Mau](https://mau.nestjs.com) in just a few clicks.
-- Visualize your application graph and interact with the NestJS application in real-time using [NestJS Devtools](https://devtools.nestjs.com).
-- Need help with your project (part-time to full-time)? Check out our official [enterprise support](https://enterprise.nestjs.com).
-- To stay in the loop and get updates, follow us on [X](https://x.com/nestframework) and [LinkedIn](https://linkedin.com/company/nestjs).
-- Looking for a job, or have a job to offer? Check out our official [Jobs board](https://jobs.nestjs.com).
+- Portas/Adapters com tokens (Symbols) para DI em runtime e baixo acoplamento.
+- Um serviço de aplicação por módulo para orquestrar use cases e manter controllers enxutos.
+- Multi-DB: Postgres (TypeORM, autoLoadEntities) e Mongo (Mongoose) no mesmo app.
+- Config/validation centralizados para segurança e previsibilidade.
 
-## Support
+### Testes (sugestão)
 
-Nest is an MIT-licensed open source project. It can grow thanks to the sponsors and support by the amazing backers. If you'd like to join them, please [read more here](https://docs.nestjs.com/support).
+- Domain: unit puro.
+- Use cases: unit mockando portas.
+- Infra (repos/gateways): integração fina com DB/externos.
+- Controllers: e2e conforme necessidade.
 
-## Stay in touch
+### Licença
 
-- Author - [Kamil Myśliwiec](https://twitter.com/kammysliwiec)
-- Website - [https://nestjs.com](https://nestjs.com/)
-- Twitter - [@nestframework](https://twitter.com/nestframework)
-
-## License
-
-Nest is [MIT licensed](https://github.com/nestjs/nest/blob/master/LICENSE).
+MIT
