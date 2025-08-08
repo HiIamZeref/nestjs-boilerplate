@@ -9,9 +9,9 @@ import { AppService } from './app.service';
 import { TypeOrmConfigService } from './database/postgres/typeorm-config.service';
 import { UsersModule } from './modules/users/users.module';
 import { NotesModule } from './modules/notes/notes.module';
-import { HttpClientModule } from './common/http/http-client.module';
 import { HealthModule } from './health/health.module';
 import { PingModule } from './modules/ping/ping.module';
+import { SharedProvidersModule } from './shared/shared-providers.module';
 
 @Module({
   imports: [
@@ -29,7 +29,7 @@ import { PingModule } from './modules/ping/ping.module';
         uri: config.get<string>('mongo.uri'),
       }),
     }),
-    HttpClientModule,
+    SharedProvidersModule,
     UsersModule,
     NotesModule,
     HealthModule,
