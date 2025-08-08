@@ -1,0 +1,45 @@
+version: '3.8'
+services:
+  api:
+    build: .
+    container_name: nest-api
+    ports:
+      - '3000:3000'
+    env_file:
+      - .env
+    environment:
+      - POSTGRES_HOST=postgres
+      - POSTGRES_PORT=5432
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=postgres
+      - POSTGRES_DB=app
+      - MONGO_URI=mongodb://mongo:27017/app
+    depends_on:
+      - postgres
+      - mongo
+
+  postgres:
+    image: postgres:16-alpine
+    container_name: nest-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: app
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    ports:
+      - '5432:5432'
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+
+  mongo:
+    image: mongo:7
+    container_name: nest-mongo
+    restart: unless-stopped
+    ports:
+      - '27017:27017'
+    volumes:
+      - mongodata:/data/db
+
+volumes:
+  pgdata:
+  mongodata:
